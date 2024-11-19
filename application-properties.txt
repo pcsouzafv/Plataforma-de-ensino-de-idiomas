@@ -1,0 +1,17 @@
+# Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/idiomasbr
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# Server Configuration
+server.port=8080
+
+# Security Configuration
+spring.security.oauth2.client.registration.google.client-id=your-client-id
+spring.security.oauth2.client.registration.google.client-secret=your-client-secret
+
+# Logging
+logging.level.org.springframework=INFO
+logging.level.com.IdiomasBR=DEBUG

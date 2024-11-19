@@ -1,0 +1,98 @@
+# cost_monitoring.tf
+# Budget
+resource "aws_budgets_budget" "monthly" {
+  name         = "idiomas-monthly-budget"
+  budget_type  = "COST"
+  limit_amount = var.monthly_budget_limit
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  notification {
+    comparison_operator = "GREATER_THAN"
+    threshold          = 80
+    threshold_type     = "PERCENTAGE"
+    notification_type  = "ACTUAL"
+    subscriber_email_addresses = [var.alert_email]
+  }
+
+  notification {
+    comparison_operator = "GREATER_THAN"
+    threshold          = 100
+    threshold_type     = "PERCENTAGE"
+    notification_type  = "FORECASTED"
+    subscriber_email_addresses = [var.alert_email]
+  }
+}
+
+# Cost Explorer
+resource "aws_ce_cost_category" "environment" {
+  name = "Environment"
+  rule {
+    value = "Production"
+    rule  {
+      tags {
+        key    = "Environment"
+        values = ["prod"]
+      }
+    }
+  }
+}
+
+# Cost and Usage Report
+resource "aws_cur_report_definition" "main" {
+  report_name                = "idiomas-cost-report"
+  time_unit                  = "HOURLY"
+  format                     = "Parquet"
+  compression                = "Parquet"
+  additional_schema_elements = ["RESOURCES"]
+  s3_bucket                 = aws_s3_bucket.cost_reports.id
+  s3_region                 = var.aws_region
+  s3_prefix                 = "cost-reports"
+  
+  refresh_closed_reports = true
+  report_versioning     = "OVERWRITE_REPORT"
+}
+
+resource "aws_s3_bucket" "cost_reports" {
+  bucket = "idiomas-cost-reports-${data.aws_caller_identity.current.account_id}"
+}
+
+# Cost Anomaly Detection
+resource "aws_ce_anomaly_monitor" "main" {
+  name      = "idiomas-cost-monitor"
+  monitor_type = "DIMENSIONAL"
+  
+  monitor_dimension = "SERVICE"
+}
+
+resource "aws_ce_anomaly_subscription" "main" {
+  name             = "idiomas-cost-anomaly-subscription"
+  threshold        = 100
+  frequency        = "DAILY"
+  monitor_arn_list = [aws_ce_anomaly_monitor.main.arn]
+  
+  subscriber {
+    type    = "EMAIL"
+    address = var.alert_email
+  }
+}
+
+# Add variables
+variable "monthly_budget_limit" {
+  description = "Monthly budget limit in USD"
+  type        = number
+}
+
+variable "alert_email" {
+  description = "Email address for cost alerts"
+  type        = string
+}
+
+# Add outputs
+output "cost_explorer_dashboard" {
+  value = "https://${var.aws_region}.console.aws.amazon.com/cost-management/home"
+}
+
+output "budget_dashboard" {
+  value = "https://${var.aws_region}.console.aws.amazon.com/billing/home#/budgets"
+}

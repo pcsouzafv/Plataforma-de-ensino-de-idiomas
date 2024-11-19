@@ -1,0 +1,38 @@
+groups:
+  - name: AITeachingService
+    rules:
+      - alert: HighErrorRate
+        expr: sum(rate(ai_errors_total[5m])) / sum(rate(ai_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: High AI service error rate
+          description: Error rate is {{ $value | humanizePercentage }} over last 5m
+
+      - alert: SlowResponseTime
+        expr: rate(ai_request_time_seconds_sum[5m]) / rate(ai_request_time_seconds_count[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Slow AI response time
+          description: Average response time is {{ $value }}s
+
+      - alert: HighRequestVolume
+        expr: sum(rate(ai_requests_total[5m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High request volume
+          description: {{ $value }} requests/second
+
+      - alert: LowSuccessRate
+        expr: (sum(ai_requests_total) - sum(ai_errors_total)) / sum(ai_requests_total) * 100 < 95
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: Low success rate
+          description: Success rate is {{ $value | humanizePercentage }}

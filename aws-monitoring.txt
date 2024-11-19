@@ -1,0 +1,119 @@
+# cloudwatch.tf
+resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
+  alarm_name          = "rds-high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/RDS"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "80"
+  alarm_description   = "RDS CPU utilization is too high"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.id
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "redis_cpu" {
+  alarm_name          = "redis-high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ElastiCache"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "80"
+  alarm_description   = "Redis CPU utilization is too high"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  dimensions = {
+    CacheClusterId = aws_elasticache_cluster.redis.id
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "eks_cpu" {
+  alarm_name          = "eks-high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "2"
+  metric_name         = "node_cpu_utilization"
+  namespace           = "ContainerInsights"
+  period              = "300"
+  statistic           = "Average"
+  threshold           = "80"
+  alarm_description   = "EKS node CPU utilization is too high"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  dimensions = {
+    ClusterName = module.eks.cluster_name
+  }
+}
+
+resource "aws_cloudwatch_dashboard" "main" {
+  dashboard_name = "idiomas-dashboard"
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", aws_db_instance.postgres.id],
+            ["AWS/ElastiCache", "CPUUtilization", "CacheClusterId", aws_elasticache_cluster.redis.id]
+          ]
+          period = 300
+          region = var.aws_region
+          title  = "Database CPU Usage"
+        }
+      },
+      {
+        type   = "metric"
+        width  = 12
+        height = 6
+        properties = {
+          metrics = [
+            ["ContainerInsights", "node_cpu_utilization", "ClusterName", module.eks.cluster_name]
+          ]
+          period = 300
+          region = var.aws_region
+          title  = "EKS CPU Usage"
+        }
+      }
+    ]
+  })
+}
+
+# SNS Topic for Alerts
+resource "aws_sns_topic" "alerts" {
+  name = "idiomas-alerts"
+}
+
+resource "aws_sns_topic_subscription" "email" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
+# X-Ray
+resource "aws_xray_sampling_rule" "main" {
+  rule_name      = "idiomas-sampling"
+  priority       = 1000
+  version        = 1
+  reservoir_size = 1
+  fixed_rate     = 0.05
+  host           = "*"
+  http_method    = "*"
+  service_name   = "*"
+  service_type   = "*"
+  url_path       = "*"
+}
+
+# CloudWatch Logs
+resource "aws_cloudwatch_log_group" "eks" {
+  name              = "/aws/eks/${module.eks.cluster_name}/cluster"
+  retention_in_days = 30
+}
+
+resource "aws_cloudwatch_log_group" "application" {
+  name              = "/aws/idiomas/application"
+  retention_in_days = 30
+}

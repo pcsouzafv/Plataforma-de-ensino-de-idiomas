@@ -1,0 +1,93 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AI Teaching Service Dashboard",
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "AI Requests Total",
+        "type": "stat",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "sum(increase(ai_requests_total[24h]))",
+            "legendFormat": "Requests"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "title": "AI Response Time",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(ai_request_time_seconds_sum[5m]) / rate(ai_request_time_seconds_count[5m])",
+            "legendFormat": "Average Response Time"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "title": "Error Rate",
+        "type": "graph",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(ai_errors_total[5m])",
+            "legendFormat": "Errors/min"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "title": "Success Rate",
+        "type": "gauge",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "(sum(ai_requests_total) - sum(ai_errors_total)) / sum(ai_requests_total) * 100",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "options": {
+          "maxValue": 100,
+          "minValue": 0,
+          "thresholds": [
+            { "color": "red", "value": 0 },
+            { "color": "yellow", "value": 95 },
+            { "color": "green", "value": 99 }
+          ]
+        }
+      }
+    ],
+    "refresh": "5s",
+    "schemaVersion": 30,
+    "version": 1,
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    }
+  }
+}
