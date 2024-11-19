@@ -1,3 +1,4 @@
+![Arquitetura_do_projeto](https://github.com/user-attachments/assets/69e02d51-fcb4-4b8c-ac23-c2c31d3758f3)
 # IdiomasBR - Plataforma Inteligente de Ensino de Idiomas
 
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.5-green)
